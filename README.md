@@ -31,7 +31,7 @@ Each record represents a time step within a subject's recording:
 ## 🗂️ Project Structure
 
 ```
-togit/
+.
 ├── train.py              # Main training script
 ├── predict.py            # Prediction and submission script
 ├── requirements.txt      # Python dependencies
@@ -66,7 +66,6 @@ togit/
 ### 1. Installation
 
 ```bash
-cd togit
 pip install -r requirements.txt
 ```
 
