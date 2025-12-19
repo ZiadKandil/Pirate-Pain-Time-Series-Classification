@@ -291,7 +291,3 @@ MIT License - See [LICENSE](LICENSE) file for details.
 ## 🙏 Acknowledgments
 
 This project structure is inspired by best practices in deep learning competitions and research projects.
-
----
-
-**Good luck with the challenge! ⚓**
