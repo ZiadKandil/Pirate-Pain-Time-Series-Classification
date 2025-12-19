@@ -1,0 +1,25 @@
+model:
+  type: lstm
+  input_size: 38
+  hidden_size: 128
+  num_layers: 2
+  num_classes: 3
+  dropout: 0.3
+  bidirectional: true
+
+data:
+  train_path: ../Data/pirate_pain_train.csv
+  labels_path: ../Data/pirate_pain_train_labels.csv
+  test_path: ../Data/pirate_pain_test.csv
+  seq_length: 180
+  val_split: 0.2
+  normalize: true
+
+training:
+  batch_size: 32
+  num_epochs: 100
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  early_stopping_patience: 10
+  num_workers: 0  # Set to 0 for Windows compatibility
+  seed: 42
