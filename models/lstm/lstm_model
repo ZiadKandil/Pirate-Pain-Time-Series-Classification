@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
 
-# Bidirectional GRU Classifier
-class GRUModel(nn.Module):
+# Bidirectional LSTM Classifier
+class LSTMModel(nn.Module):
 
     def __init__(self, config):
 
-        #initialize the GRU model
-        super(GRUModel, self).__init__()
+        #initialize the LSTM model
+        super(LSTMModel, self).__init__()
 
         # Read model parameters from config file
         self.input_size = config['model']['input_size']
@@ -22,8 +22,8 @@ class GRUModel(nn.Module):
         else:
             self.num_directions = 1
 
-        # Define GRU Layer
-        self.gru = nn.GRU(
+        # Define LSTM Layer
+        self.lstm = nn.LSTM(
             input_size = self.input_size,
             hidden_size = self.hidden_size,
             num_layers = self.num_layers,
@@ -37,19 +37,19 @@ class GRUModel(nn.Module):
 
         # Define Fully Connected Layer
         self.fc = nn.Linear(
-            # of input features is the output of the GRU layer, which is hidden_size * num_directions
+            # of input features is the output of the LSTM layer, which is hidden_size * num_directions
             self.hidden_size * self.num_directions,
             # Output size is the number of classes for classification
             self.num_classes
         )
-    
+
     # Define the forward pass with input tensor x of shape (batch_size, seq_length, input_size)
     def forward(self, x):
 
-        # Pass the input through the GRU layer
+        # Pass the input through the LSTM layer
         # output shape is (batch_size, seq_length, hidden_size * num_directions)
         # hidden: final hidden state produced at the very last time step of the sequence, for every layer and every direction
-        out, hidden = self.gru(x)
+        out, (hidden, cell) = self.lstm(x)
 
         # Use the last hidden state for classification and Concatenate the last hidden states from both directions if bidirectional
         if self.bidirectional:
