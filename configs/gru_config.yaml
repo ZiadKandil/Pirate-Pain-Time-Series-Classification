@@ -14,6 +14,9 @@ data:
   seq_length: 180
   val_split: 0.2
   normalize: true
+  Missing_value_strategy: mean
+  Augmentation: False
+  Augmentation_noise_level: 0.01
 
 training:
   batch_size: 32
