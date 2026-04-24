@@ -29,7 +29,15 @@ Several essential preprocessing steps were implemented to clean and unify the da
 
 ## How to Run
 
-### 1. Training
+### 1. Data Exploration
+
+Before training, you might want to run the exploratory data analysis script to understand data distributions, missing values, and sequence characteristics. You can even pipe the output to a file:
+
+```bash
+python explore_data.py --data "data/train_data/pirate_pain_train.csv" --labels "data/train_data/pirate_pain_train_labels.csv" > Sample_Data_Exploration.txt
+```
+
+### 2. Training
 
 To train the target model based on a configuration file, run:
 
@@ -48,7 +56,7 @@ During training, the `train.py` loop will:
 - Update model weights and check against Early Stopping criteria.
 - Periodically dump the best weights as `checkpoints/<model>_best.pth`.
 
-### 2. Prediction / Inference
+### 3. Prediction / Inference
 
 To perform prediction using a saved checkpoint over hidden test sequences, execute the inference script:
 
