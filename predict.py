@@ -34,10 +34,10 @@ def predict(model, data_loader, device):
     predictions = []
     probabilities = []
 
-    pbar = tqdm.tqdm(data_loader, desc='Predicting')
+    pbar = tqdm(data_loader, desc='Predicting')
 
     with torch.no_grad():
-        for data in enumerate(pbar):
+        for data in pbar:
             # Check if data is a tuple (data, target) or just data
             if isinstance(data, (list, tuple)):
                 data = data[0]
@@ -86,8 +86,8 @@ def main():
 
     print(f'Loading model from {args.checkpoint}')
     
-    model.get_model(config)
-    checkpoint = torch.load(args.checkpoint, map_location=device)
+    model = get_model(config)
+    checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
 
@@ -95,7 +95,7 @@ def main():
 
     predictions, probabilities = predict(model, test_loader, device)
 
-    # Convert predictions to original labels if label encoder is available
+    # Convert predictions to original labels
     label_mapping = {0: 'high_pain', 1: 'low_pain', 2: 'no_pain'}
     predicted_labels = [label_mapping[p] for p in predictions]
 
@@ -105,7 +105,7 @@ def main():
         'pain_level': predicted_labels
     })
 
-    submission.to_csv(arg.output, index=False)
+    submission.to_csv(args.output, index=False)
     print(f"Predictions saved to {args.output}")
     print(f"\nPrediction distribution:")
     print(submission['pain_level'].value_counts())

@@ -18,7 +18,7 @@ class LSTMModel(nn.Module):
         self.bidirectional = config['model'].get('bidirectional', True)
 
         if self.bidirectional:
-            self.num_direcions = 2
+            self.num_directions = 2
         else:
             self.num_directions = 1
 

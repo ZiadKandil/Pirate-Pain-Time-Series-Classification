@@ -4,10 +4,11 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.utils.data as DataLoader
+from torch.utils.data import DataLoader
 import numpy as np
 import pandas as pd
 import tqdm
+from sklearn.utils.class_weight import compute_class_weight
 
 from utils.dataset import PiratePainDataset
 from utils.metrics import calculate_metrics
@@ -37,6 +38,8 @@ def train_epoch(model, train_loader, criterion, optimizer, device):
     model.train() # Set the model to training mode
 
     total_loss = 0
+    correct = 0
+    total = 0
     all_targets = []
     all_preds = []
 
@@ -55,13 +58,16 @@ def train_epoch(model, train_loader, criterion, optimizer, device):
         total_loss += loss.item()  
         pred = output.argmax(dim=1)  # Get the index of the max probability as the predicted class
 
+        correct += pred.eq(target).sum().item()
+        total += target.size(0)
+
         all_targets.extend(target.cpu().numpy())  # Collect all target labels for metrics calculation
-        all_preds.extend(preds.cpu().numpy())   # Collect all predicted labels for metrics calculation
+        all_preds.extend(pred.cpu().numpy())   # Collect all predicted labels for metrics calculation
 
         pbar.set_postfix({'loss': total_loss / (batch_idx + 1), 'accuracy': 100.*correct / total})
     
     metrics = calculate_metrics(all_targets, all_preds)  # Calculate metrics for the epoch
-    f1_score = metrics['f1_score']
+    f1_score = metrics['f1_macro']
 
     return total_loss / len(train_loader), f1_score
 
@@ -88,7 +94,7 @@ def validate_epoch(model, val_loader, criterion, device):
             all_preds.extend(pred.cpu().numpy())
 
     metrics = calculate_metrics(all_targets, all_preds)
-    f1_score = metrics['f1_score']
+    f1_score = metrics['f1_macro']
 
     return total_loss / len(val_loader), f1_score
 
@@ -97,7 +103,7 @@ def main():
     # Create a parser oobject to handle command-line arguments
     parser = argparse.ArgumentParser(description='Train Pirate Pain Classification Model')
     parser.add_argument('--config', type=str, required=True, help='Path to config file')
-    parser.add_argument*('--resume', type=str, default=None, help='Path to checkpoint to resume training')
+    parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint to resume training')
     args = parser.parse_args()  # Parse the command-line arguments
 
     # Load the configuration from the specified config file
@@ -115,27 +121,28 @@ def main():
     print('Loading data...')
 
     train_dataset = PiratePainDataset(
-        data_path=config['data']['train_data_path'],
-        labels_path=config['data']['train_labels_path'],
+        data_path=config['data']['train_path'],
+        labels_path=config['data']['labels_path'],
         config=config,
         mode='train'
     )
 
     val_dataset = PiratePainDataset(
-        data_path=config['data']['train_data_path'],
-        labels_path=config['data']['train_labels_path'],
+        data_path=config['data']['train_path'],
+        labels_path=config['data']['labels_path'],
         config=config,
-        mode='val'
+        mode='val',
+        scaler=train_dataset._scalar
     )
 
-    train_loader = Dataloader(
-        train_dataser,
+    train_loader = DataLoader(
+        train_dataset,
         batch_size = config['training']['batch_size'],
-        shiffle = True,
+        shuffle = True,
         num_workers = config['training'].get('num_workers', 4)
     )
 
-    val_loader = Dataloader(
+    val_loader = DataLoader(
         val_dataset,
         batch_size = config['training']['batch_size'],
         shuffle = False,
@@ -143,6 +150,15 @@ def main():
     )
 
     print(f"Train samples: {len(train_dataset)}, 'Val samples: {len(val_dataset)}")
+
+    # Calculating class weights to consider class imbalance
+    class_weights = compute_class_weight(
+        class_weight = 'balanced',
+        classes = np.unique(train_dataset.labels),
+        y = train_dataset.labels
+    )
+
+    class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
 
     # Create model
     print('Creating model...')
@@ -153,7 +169,7 @@ def main():
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'Total trainable parameters: {total_params:,}')
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
     optimizer = optim.Adam(
         model.parameters(),
         lr=config['training']['learning_rate'],
@@ -161,12 +177,11 @@ def main():
     )
 
     # Scheduler for learning rate decay
-    scheduler = optim.lr_scheduler.ReduceLROnPlaeau(
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         mode='min',
         factor=0.5,
-        patience=5,
-        verbose=True
+        patience=5
     )
 
     start_epoch = 0
@@ -212,7 +227,7 @@ def main():
             os.makedirs('checkpoints', exist_ok=True)
             torch.save({
                 'epoch': epoch,
-                'model_state_dict': model.state.dict(),
+                'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'best_val_f1': best_val_f1,
                 'config': config

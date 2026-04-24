@@ -8,13 +8,14 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 class PiratePainDataset(Dataset):
 
     # initialize the dataset from CSV files and configuration
-    def __init__(self, data_path, labels_pth, config, mode='train'):
+    def __init__(self, data_path, labels_path, config, mode='train', scaler=None):
         
         self.data_path = data_path
-        self.labels_path = labels_pth
+        self.labels_path = labels_path
         self.config = config
         self.mode = mode
         self.seq_length = config['data']['seq_length']
+        self._scalar = scaler
 
         # Load data and labels
         self.data, self.labels, self.sample_indices = self._load_data()
@@ -35,6 +36,11 @@ class PiratePainDataset(Dataset):
         for col in df.columns:
             if col not in ['sample_index', 'time']:
                 feature_cols.append(col)
+        
+        # Convert String Columns to Numerical representation
+        for col in ['n_legs', 'n_hands', 'n_eyes']:
+             if col in df.columns:
+                  df[col] = df[col].astype('category').cat.codes
         
         n_samples = len(sample_indices)
         n_features = len(feature_cols)
@@ -68,7 +74,7 @@ class PiratePainDataset(Dataset):
             data_reshaped = self.data.reshape(-1, n_features)
 
             # Fit the scaler on the training data and transform on val/test
-            if self.mode == 'train':
+            if self.mode == 'train' or self._scalar is None:
                 self._scalar = StandardScaler()
                 data_scaled = self._scalar.fit_transform(data_reshaped)
             else:
@@ -100,12 +106,13 @@ class PiratePainDataset(Dataset):
                         self.data[i, :, j] = df.values
         
         # Data augmentation by adding Gaussian noise if specified in the config
-        if self.config['data']['augment'] == True:
-            self.noise_level = self.config['data']['Augmentation_noise_level']
+        if self.mode == 'train' and self.config['data'].get('Augmentation', False) == True:
+            self.noise_level = self.config['data'].get('Augmentation_noise_level', 0.01)
             noise = np.random.normal(0, self.noise_level, self.data.shape)
             augmented_data = self.data + noise
             self.data = np.concatenate([self.data, augmented_data], axis=0)
-            self.labels = np.concatenate([self.labels, self.labels], axis=0)
+            if self.labels is not None:
+                self.labels = np.concatenate([self.labels, self.labels], axis=0)
 
         # Split into train and validation sets if in training mode
         if self.mode in ['train', 'val'] and self.labels is not None:
@@ -132,7 +139,7 @@ class PiratePainDataset(Dataset):
     def __getitem__(self, idx):
         sequence = torch.FloatTensor(self.data[idx])
         if self.labels is not None:
-            label = torch.LongTensor(self.labels[idx])[0]
+            label = torch.tensor(self.labels[idx], dtype=torch.long)
             return sequence, label
         else:
             return sequence

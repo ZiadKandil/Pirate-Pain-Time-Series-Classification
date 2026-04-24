@@ -5,24 +5,24 @@ model:
   num_layers: 2
   num_classes: 3
   dropout: 0.3
-  bidirectional: true
+  bidirectional: True
 
 data:
-  train_path: ../Data/pirate_pain_train.csv
-  labels_path: ../Data/pirate_pain_train_labels.csv
-  test_path: ../Data/pirate_pain_test.csv
-  seq_length: 180
+  train_path: data/train_data/pirate_pain_train.csv
+  labels_path: data/train_data/pirate_pain_train_labels.csv
+  test_path: data/test_data/pirate_pain_test.csv
+  seq_length: 160
   val_split: 0.2
-  normalize: true
+  normalize: True
   Missing_value_strategy: mean
-  Augmentation: False
+  Augmentation: True
   Augmentation_noise_level: 0.01
 
 training:
-  batch_size: 32
+  batch_size: 16
   num_epochs: 100
   learning_rate: 0.001
-  weight_decay: 0.0001
+  weight_decay: 0.001
   early_stopping_patience: 10
   num_workers: 0  # Set to 0 for Windows compatibility
   seed: 42
