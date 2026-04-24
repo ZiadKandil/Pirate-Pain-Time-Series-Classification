@@ -43,7 +43,7 @@ def explore_data(data_path, labels_path=None):
     if labels_path and os.path.exists(labels_path):
 
         labels_df = pd.read_csv(labels_path)
-        print('Class distribution:')
+        print('7- Class distribution:')
         class_counts = labels_df['label'].value_counts()
         class_percentages = labels_df['label'].value_counts(normalize=True) * 100
         dist_df = pd.DataFrame({'Count': class_counts, 'Percentage': class_percentages})
